@@ -18,8 +18,8 @@ The main thing that this CLI does is enable the encoding of standard JSONL
 outputs of the [multi-scale map sampler](https://github.com/peterrrock2/multi-scale-map-sampler.git)
 (MSMS) in the standardized JSONL format:
 
-```json
-{"assignment": <assignment-vector>, "sample": <sample number>
+```
+{"assignment": <assignment-vector>, "sample": <sample number>}
 ```
 
 or in the [BEN](https://github.com/peterrrock2/binary-ensamble.git) format. 

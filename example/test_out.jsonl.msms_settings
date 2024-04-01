@@ -1,0 +1,2 @@
+{"description":"","date":"2024-03-05T03:22:10.539","atlasParamType":"Dict{String, Any}","mapParamType":"Dict{String, Any}"}
+{"energy weights":[],"levels in graph":["county","precinct"],"population bounds":[7,7],"graph nodes by level":[8,49],"gamma":0.0,"graph edges by level":[10,84],"energies":[],"districts":7}

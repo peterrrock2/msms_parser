@@ -2,16 +2,37 @@ use clap::{Arg, ArgAction, Command};
 use serde_json::{json, Value};
 use std::{
     collections::HashMap,
+    env,
     fs::File,
     io::{self, BufRead, BufReader, BufWriter, Write},
 };
+
+macro_rules! log {
+    ($($arg:tt)*) => {{
+        if let Ok(log_level) = std::env::var("RUST_LOG") {
+            if log_level.to_lowercase() == "trace" {
+                eprint!($($arg)*);
+            }
+        }
+    }}
+}
+
+macro_rules! logln {
+    ($($arg:tt)*) => {{
+        if let Ok(log_level) = std::env::var("RUST_LOG") {
+            if log_level.to_lowercase() == "trace" {
+                eprintln!($($arg)*);
+            }
+        }
+    }}
+}
 
 fn read_shape<R: BufRead>(
     reader: R,
     region: &str,
     precinct: &str,
 ) -> HashMap<String, HashMap<String, usize>> {
-    eprintln!("Reading dual-graph shapefile");
+    logln!("Reading dual-graph shapefile");
     let data: serde_json::Value = serde_json::from_reader(reader).expect("Error while reading");
 
     // Note: This hashmap is going to rely on the way that the msms structures
@@ -58,7 +79,7 @@ fn canonicalize_jsonl<S: BufRead, R: BufRead, W: Write>(
         let line = line.unwrap();
         let data: serde_json::Value = serde_json::from_str(&line).expect("Error while reading");
 
-        eprint!("Processing sample {}\r", i - 2);
+        log!("Processing sample {}\r", i - 2);
         if let Some(districts) = data["districting"].as_array() {
             for item in districts.iter() {
                 if let Value::Object(dst) = item {
@@ -81,7 +102,7 @@ fn canonicalize_jsonl<S: BufRead, R: BufRead, W: Write>(
                                 assignments[*id] = value.as_u64().unwrap() as usize;
                             }
                             _ => {
-                                eprintln!("Error: {:?}", key);
+                                logln!("Error: {:?}", key);
                             }
                         }
                     }
@@ -91,14 +112,14 @@ fn canonicalize_jsonl<S: BufRead, R: BufRead, W: Write>(
             writeln!(writer, "{}", json_line.to_string()).expect("Error writing to file");
         }
     }
-    eprintln!();
+    logln!();
 }
 
 fn canonicalize_jsonl_ben<S: BufRead, R: BufRead, W: Write>(
     shapefile_reader: S,
     reader: R,
     mut writer: W,
-    mut logger: W,
+    mut settings_log: W,
     region: &str,
     precinct: &str,
 ) {
@@ -114,7 +135,7 @@ fn canonicalize_jsonl_ben<S: BufRead, R: BufRead, W: Write>(
             continue;
         }
         if i < 3 {
-            writeln!(logger, "{}", line.unwrap()).expect("Error writing to file");
+            writeln!(settings_log, "{}", line.unwrap()).expect("Error writing to file");
             continue;
         }
 
@@ -123,7 +144,7 @@ fn canonicalize_jsonl_ben<S: BufRead, R: BufRead, W: Write>(
         let line = line.unwrap();
         let data: serde_json::Value = serde_json::from_str(&line).expect("Error while reading");
 
-        eprint!("Processing sample {}\r", i - 2);
+        log!("Processing sample {}\r", i - 2);
         if let Some(districts) = data["districting"].as_array() {
             for item in districts.iter() {
                 if let Value::Object(dst) = item {
@@ -146,7 +167,7 @@ fn canonicalize_jsonl_ben<S: BufRead, R: BufRead, W: Write>(
                                 assignments[*id] = value.as_u64().unwrap() as u16;
                             }
                             _ => {
-                                eprintln!("Error: {:?}", key);
+                                logln!("Error: {:?}", key);
                             }
                         }
                     }
@@ -158,7 +179,7 @@ fn canonicalize_jsonl_ben<S: BufRead, R: BufRead, W: Write>(
                 .expect("Error writing to file");
         }
     }
-    eprintln!();
+    logln!();
 }
 
 fn main() {
@@ -240,7 +261,7 @@ fn main() {
             shapefile_reader,
             reader,
             writer,
-            logger,
+            settings_log,
             args.get_one("region").map(String::as_str).unwrap(),
             args.get_one("precinct").map(String::as_str).unwrap(),
         );
@@ -249,7 +270,7 @@ fn main() {
             shapefile_reader,
             reader,
             writer,
-            logger,
+            settings_log,
             args.get_one("region").map(String::as_str).unwrap(),
             args.get_one("precinct").map(String::as_str).unwrap(),
         );

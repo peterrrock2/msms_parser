@@ -1,3 +1,4 @@
+use ben::encode::BenEncoder;
 use clap::{Arg, ArgAction, Command};
 use serde_json::{json, Value};
 use std::{
@@ -118,7 +119,7 @@ fn canonicalize_jsonl<S: BufRead, R: BufRead, W: Write>(
 fn canonicalize_jsonl_ben<S: BufRead, R: BufRead, W: Write>(
     shapefile_reader: S,
     reader: R,
-    mut writer: W,
+    writer: W,
     mut settings_log: W,
     region: &str,
     precinct: &str,
@@ -127,9 +128,8 @@ fn canonicalize_jsonl_ben<S: BufRead, R: BufRead, W: Write>(
 
     let n_precincts = map.iter().map(|(_, v)| v.len()).sum::<usize>();
 
-    writer
-        .write_all(b"STANDARD BEN FILE")
-        .expect("Error writing to file");
+    let mut ben_encoder = BenEncoder::new(writer);
+
     for (i, line) in reader.lines().enumerate() {
         if i == 0 {
             continue;
@@ -173,10 +173,7 @@ fn canonicalize_jsonl_ben<S: BufRead, R: BufRead, W: Write>(
                     }
                 }
             }
-            let assign_ben = ben::encode::encode_ben_vec_from_assign(assignments);
-            writer
-                .write_all(assign_ben.as_slice())
-                .expect("Error writing to file");
+            ben_encoder.write_assignment(assignments);
         }
     }
     logln!();

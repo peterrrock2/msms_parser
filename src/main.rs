@@ -187,25 +187,25 @@ fn main() {
         .version("0.1.0")
         .about("Canonicalize jsonl file")
         .arg(
-            Arg::new("shapefile_json")
-                .short('s')
-                .long("shapefile_json")
-                .help("Path to the shapefile json file")
+            Arg::new("dual_graph_json")
+                .short('g')
+                .long("graph-json")
+                .help("Path to the dual-graph json file")
                 .required(true),
         )
         .arg(
             Arg::new("input_jsonl")
                 .short('i')
-                .long("input_jsonl")
+                .long("input-jsonl")
                 .help("Path to the input jsonl file")
                 .required(false),
         )
         .arg(
-            Arg::new("output_jsonl")
+            Arg::new("output_file")
                 .short('o')
-                .long("output_jsonl")
+                .long("output-file")
                 .help("Path to the output jsonl file")
-                .required(true),
+                .required(false),
         )
         .arg(
             Arg::new("region")
@@ -215,10 +215,10 @@ fn main() {
                 .required(true),
         )
         .arg(
-            Arg::new("precinct")
-                .short('p')
-                .long("precinct")
-                .help("Precinct name")
+            Arg::new("subregion")
+                .short('s')
+                .long("subregion")
+                .help("Subregion name")
                 .required(true),
         )
         .arg(
@@ -228,33 +228,68 @@ fn main() {
                 .help("Ben")
                 .action(ArgAction::SetTrue),
         )
+        .arg(
+            Arg::new("verbose")
+                .short('v')
+                .long("verbose")
+                .help("Verbose output")
+                .action(ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("overwrite")
+                .short('w')
+                .long("overwrite")
+                .help("Overwrite output file")
+                .action(ArgAction::SetTrue),
+        )
         .get_matches();
 
-    let stdin = io::stdin();
-    let reader = stdin.lock();
+    if *args.get_one::<bool>("verbose").unwrap_or(&false) {
+        env::set_var("RUST_LOG", "trace");
+    }
 
-    let shapefile_json = File::open(args.get_one("shapefile_json").map(String::as_str).unwrap())
+    let reader = match args.get_one("input_jsonl").map(String::as_str) {
+        Some(file_name) => {
+            let file = File::open(file_name).expect("Error opening file");
+            Box::new(BufReader::new(file)) as Box<dyn BufRead>
+        }
+        None => Box::new(io::stdin().lock()) as Box<dyn BufRead>,
+    };
+
+    let shapefile_json = File::open(args.get_one("dual_graph_json").map(String::as_str).unwrap())
         .expect("Error opening file");
     let shapefile_reader = BufReader::new(shapefile_json);
 
-    let output_jsonl = File::create(args.get_one("output_jsonl").map(String::as_str).unwrap())
-        .expect("Error creating file");
-    let writer = BufWriter::new(output_jsonl);
+    let (writer, settings_log) = match args.get_one("output_file").map(String::as_str) {
+        Some(file_name) => {
+            let path = std::path::Path::new(file_name);
+            if path.exists() && !*args.get_one::<bool>("overwrite").unwrap_or(&false) {
+                eprint!(
+                    "File {:?} already exists. Would you like to overwrite? y/[n]: ",
+                    path
+                );
+                let mut response = String::new();
+                io::stdin()
+                    .read_line(&mut response)
+                    .expect("Error reading response");
 
-    let logger_file = File::create(
-        args.get_one("output_jsonl")
-            .map(String::as_str)
-            .unwrap()
-            .to_owned()
-            + ".settings",
-    )
-    .expect("Error creating file");
-    let logger = BufWriter::new(logger_file);
-
-    eprintln!(
-        "Ben???? {:?}",
-        *args.get_one::<bool>("ben").unwrap_or(&false)
-    );
+                if response.trim() != "y" {
+                    std::process::exit(0);
+                }
+            }
+            let file = File::create(file_name).expect("Error creating file");
+            let settings_file =
+                File::create(file_name.to_owned() + ".msms_settings").expect("Error creating file");
+            (
+                Box::new(BufWriter::new(file)) as Box<dyn Write>,
+                Box::new(BufWriter::new(settings_file)) as Box<dyn Write>,
+            )
+        }
+        None => (
+            Box::new(io::stdout()) as Box<dyn Write>,
+            Box::new(io::stderr()) as Box<dyn Write>,
+        ),
+    };
 
     if *args.get_one::<bool>("ben").unwrap_or(&false) {
         canonicalize_jsonl_ben(
@@ -263,7 +298,7 @@ fn main() {
             writer,
             settings_log,
             args.get_one("region").map(String::as_str).unwrap(),
-            args.get_one("precinct").map(String::as_str).unwrap(),
+            args.get_one("subregion").map(String::as_str).unwrap(),
         );
     } else {
         canonicalize_jsonl(
@@ -272,7 +307,7 @@ fn main() {
             writer,
             settings_log,
             args.get_one("region").map(String::as_str).unwrap(),
-            args.get_one("precinct").map(String::as_str).unwrap(),
+            args.get_one("subregion").map(String::as_str).unwrap(),
         );
     }
 }

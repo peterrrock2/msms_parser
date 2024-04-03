@@ -184,7 +184,7 @@ fn canonicalize_jsonl_ben<S: BufRead, R: BufRead, W: Write>(
 }
 
 fn main() {
-    let args = Command::new("canonicalize_jsonl")
+    let args = Command::new("msms-parser")
         .version("0.1.0")
         .about(concat!(
             "Allows for the conversion of a JSONL file stored in the ",

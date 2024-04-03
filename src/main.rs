@@ -5,7 +5,7 @@ use std::{
     collections::HashMap,
     env,
     fs::File,
-    io::{self, BufRead, BufReader, BufWriter, Write},
+    io::{self, BufRead, BufReader, BufWriter, Result, Write},
 };
 
 macro_rules! log {
@@ -61,7 +61,7 @@ fn canonicalize_jsonl<S: BufRead, R: BufRead, W: Write>(
     mut logger: W,
     region: &str,
     precinct: &str,
-) {
+) -> Result<()> {
     let map = read_shape(shapefile_reader, region, precinct);
 
     let n_precincts = map.iter().map(|(_, v)| v.len()).sum::<usize>();
@@ -110,11 +110,12 @@ fn canonicalize_jsonl<S: BufRead, R: BufRead, W: Write>(
                 }
             }
             let json_line = json!({"sample": i-2, "assignment": assignments});
-            writeln!(writer, "{}", json_line.to_string()).expect("Error writing to file");
+            writeln!(writer, "{}", json_line.to_string())?;
         }
     }
     logln!();
     logln!("Done!");
+    Ok(())
 }
 
 fn canonicalize_jsonl_ben<S: BufRead, R: BufRead, W: Write>(
@@ -124,7 +125,7 @@ fn canonicalize_jsonl_ben<S: BufRead, R: BufRead, W: Write>(
     mut settings_log: W,
     region: &str,
     precinct: &str,
-) {
+) -> Result<()> {
     let map = read_shape(shapefile_reader, region, precinct);
 
     let n_precincts = map.iter().map(|(_, v)| v.len()).sum::<usize>();
@@ -174,11 +175,12 @@ fn canonicalize_jsonl_ben<S: BufRead, R: BufRead, W: Write>(
                     }
                 }
             }
-            ben_encoder.write_assignment(assignments);
+            ben_encoder.write_assignment(assignments)?;
         }
     }
     logln!();
     logln!("Done!");
+    Ok(())
 }
 
 fn main() {
@@ -302,7 +304,8 @@ fn main() {
             settings_log,
             args.get_one("region").map(String::as_str).unwrap(),
             args.get_one("subregion").map(String::as_str).unwrap(),
-        );
+        )
+        .expect("Error while writing");
     } else {
         canonicalize_jsonl(
             shapefile_reader,
@@ -311,6 +314,7 @@ fn main() {
             settings_log,
             args.get_one("region").map(String::as_str).unwrap(),
             args.get_one("subregion").map(String::as_str).unwrap(),
-        );
+        )
+        .expect("Error while writing");
     }
 }

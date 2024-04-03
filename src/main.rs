@@ -114,6 +114,7 @@ fn canonicalize_jsonl<S: BufRead, R: BufRead, W: Write>(
         }
     }
     logln!();
+    logln!("Done!");
 }
 
 fn canonicalize_jsonl_ben<S: BufRead, R: BufRead, W: Write>(
@@ -177,12 +178,17 @@ fn canonicalize_jsonl_ben<S: BufRead, R: BufRead, W: Write>(
         }
     }
     logln!();
+    logln!("Done!");
 }
 
 fn main() {
     let args = Command::new("canonicalize_jsonl")
         .version("0.1.0")
-        .about("Canonicalize jsonl file")
+        .about(concat!(
+            "Allows for the conversion of a JSONL file stored in the ",
+            "multi-scale map sampler output format into an assignment-sample JSONL ",
+            "file or into a BEN file."
+        ))
         .arg(
             Arg::new("dual_graph_json")
                 .short('g')

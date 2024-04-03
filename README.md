@@ -51,8 +51,14 @@ Here are a list of the flags for the CLI
 - `-v --verbose` A boolean flag that, when included, will write some progress indicators to
   stderr
 
+- `-w --overwrite` A boolean flag that, when included, will force the output file of the
+  `-o` file to be overwritten and will suppress the user query prompt.
 
-You can see the `msms_parser` at work by running the following command on the example file:
+
+
+## Example
+
+You can see the `msms_parser` at work by running the following command on the example files:
 
 ```
 msms_parser -g 7x7.json -i 42_atlas_gamma0.0_100.jsonl -r county -s precinct
